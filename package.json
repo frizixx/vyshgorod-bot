@@ -1,0 +1,21 @@
+{
+  "name": "vyshgorod-bot",
+  "version": "1.0.0",
+  "description": "Telegram bot for Vyshgorod residents with news, blackout schedules, and air raid alerts",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node --watch index.js"
+  },
+  "keywords": ["telegram", "bot", "vyshgorod", "ukraine", "alerts"],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "node-telegram-bot-api": "^0.66.0",
+    "node-cron": "^3.0.3",
+    "cheerio": "^1.0.0",
+    "axios": "^1.7.0",
+    "sql.js": "^1.10.3"
+  }
+}
