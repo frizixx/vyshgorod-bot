@@ -205,6 +205,17 @@ export const queries = {
       db.run('UPDATE alert_history SET ended_at = ? WHERE id = ?', [endedAt, id]);
       saveDB();
     }
+  },
+
+  // Statistics
+  getUserCount: {
+    get: () => {
+      const stmt = db.prepare('SELECT COUNT(*) as count FROM users');
+      stmt.step();
+      const result = stmt.getAsObject();
+      stmt.free();
+      return result;
+    }
   }
 };
 
