@@ -55,6 +55,12 @@ async function initDB() {
       ended_at DATETIME,
       notified INTEGER DEFAULT 0
     );
+
+    CREATE TABLE IF NOT EXISTS schedule_cache (
+      queue_number TEXT PRIMARY KEY,
+      schedule_json TEXT,
+      last_updated DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
   `);
 
   return db;
@@ -215,6 +221,41 @@ export const queries = {
       const result = stmt.getAsObject();
       stmt.free();
       return result;
+    }
+  },
+
+  // Schedule monitoring
+  getScheduleCache: {
+    get: (queueNumber) => {
+      const stmt = db.prepare('SELECT * FROM schedule_cache WHERE queue_number = ?');
+      stmt.bind([queueNumber]);
+      if (stmt.step()) {
+        const result = stmt.getAsObject();
+        stmt.free();
+        return result;
+      }
+      stmt.free();
+      return null;
+    }
+  },
+
+  saveScheduleCache: {
+    run: (queueNumber, scheduleJson) => {
+      db.run('INSERT OR REPLACE INTO schedule_cache (queue_number, schedule_json, last_updated) VALUES (?, ?, CURRENT_TIMESTAMP)',
+        [queueNumber, scheduleJson]);
+      saveDB();
+    }
+  },
+
+  getAllScheduleCaches: {
+    all: () => {
+      const stmt = db.prepare('SELECT * FROM schedule_cache');
+      const results = [];
+      while (stmt.step()) {
+        results.push(stmt.getAsObject());
+      }
+      stmt.free();
+      return results;
     }
   }
 };

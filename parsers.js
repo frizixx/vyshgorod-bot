@@ -307,3 +307,80 @@ function getWeatherDescription(code) {
 
   return descriptions[code] || 'Невідомо';
 }
+
+// Парсинг графіків відключень з сайту
+export async function fetchBlackoutSchedules() {
+  try {
+    console.log('Fetching blackout schedules from vyshgorod.in.ua/svitlo...');
+
+    const betterHeaders = {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+      'Accept-Language': 'uk-UA,uk;q=0.9,en;q=0.7',
+      'Referer': 'https://vyshgorod.in.ua/'
+    };
+
+    const { data } = await axios.get('https://vyshgorod.in.ua/svitlo', {
+      headers: betterHeaders,
+      timeout: 15000
+    });
+
+    const $ = cheerio.load(data);
+    const schedules = {};
+
+    // Шукаємо графіки для кожної групи
+    // Структура сайту може змінюватись, тому пробуємо різні методи
+
+    // Метод 1: Шукаємо через таблиці або списки
+    $('table, .schedule, .blackout-schedule').each((i, elem) => {
+      const text = $(elem).text();
+
+      // Шукаємо номери груп (1.1, 1.2, 1.4, 2.1, 6.2)
+      const queueMatches = text.match(/(\d+\.\d+)/g);
+      if (queueMatches) {
+        queueMatches.forEach(queue => {
+          if (['1.1', '1.2', '1.4', '2.1', '6.2'].includes(queue)) {
+            // Шукаємо часові проміжки (наприклад 00:00-04:00)
+            const timeMatches = text.match(/(\d{1,2}:\d{2})\s*[-–—]\s*(\d{1,2}:\d{2})/g);
+            if (timeMatches) {
+              const slots = timeMatches.map(tm => {
+                const [start, end] = tm.split(/[-–—]/).map(t => t.trim());
+                return { start, end };
+              });
+              if (slots.length > 0) {
+                schedules[queue] = slots;
+              }
+            }
+          }
+        });
+      }
+    });
+
+    // Метод 2: Якщо не знайшли через таблиці, шукаємо в тексті
+    if (Object.keys(schedules).length === 0) {
+      const fullText = $('body').text();
+      ['1.1', '1.2', '1.4', '2.1', '6.2'].forEach(queue => {
+        const queueRegex = new RegExp(`${queue.replace('.', '\\.')}[\\s\\S]{0,200}?(\\d{1,2}:\\d{2}\\s*[-–—]\\s*\\d{1,2}:\\d{2})`, 'g');
+        const matches = fullText.match(queueRegex);
+        if (matches) {
+          const slots = [];
+          matches.forEach(match => {
+            const timeMatch = match.match(/(\d{1,2}:\d{2})\s*[-–—]\s*(\d{1,2}:\d{2})/);
+            if (timeMatch) {
+              slots.push({ start: timeMatch[1], end: timeMatch[2] });
+            }
+          });
+          if (slots.length > 0) {
+            schedules[queue] = slots;
+          }
+        }
+      });
+    }
+
+    console.log(`Fetched schedules for ${Object.keys(schedules).length} queues`);
+    return schedules;
+  } catch (error) {
+    console.error('Error fetching blackout schedules:', error.message);
+    return null;
+  }
+}

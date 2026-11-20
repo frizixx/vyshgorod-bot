@@ -1,5 +1,5 @@
 import cron from 'node-cron';
-import { fetchNews, checkAlerts, getWeather } from './parsers.js';
+import { fetchNews, checkAlerts, getWeather, fetchBlackoutSchedules } from './parsers.js';
 import { queries } from './db.js';
 import { config } from './config.js';
 
@@ -146,9 +146,94 @@ export function setupSchedulers(bot) {
     }
   });
 
+  // Check blackout schedule changes every 5 minutes
+  cron.schedule('*/5 * * * *', async () => {
+    console.log('Checking for blackout schedule changes...');
+    const newSchedules = await fetchBlackoutSchedules();
+
+    if (newSchedules && Object.keys(newSchedules).length > 0) {
+      const changedQueues = [];
+
+      // Перевіряємо кожну групу на зміни
+      for (const [queueNumber, newSlots] of Object.entries(newSchedules)) {
+        const cached = queries.getScheduleCache.get(queueNumber);
+        const newScheduleJson = JSON.stringify(newSlots);
+
+        if (cached) {
+          // Порівнюємо з кешем
+          if (cached.schedule_json !== newScheduleJson) {
+            changedQueues.push({
+              queue: queueNumber,
+              oldSchedule: JSON.parse(cached.schedule_json),
+              newSchedule: newSlots
+            });
+            queries.saveScheduleCache.run(queueNumber, newScheduleJson);
+          }
+        } else {
+          // Перший запуск - зберігаємо без сповіщення
+          queries.saveScheduleCache.run(queueNumber, newScheduleJson);
+        }
+      }
+
+      // Сповіщаємо користувачів про зміни
+      if (changedQueues.length > 0) {
+        console.log(`Schedule changes detected for queues: ${changedQueues.map(c => c.queue).join(', ')}`);
+
+        const users = queries.getAllUsers.all();
+
+        for (const change of changedQueues) {
+          const affectedUsers = users.filter(u => u.queue_number === change.queue);
+
+          // Формуємо повідомлення про зміни
+          const oldTimes = change.oldSchedule.map(s => `${s.start}-${s.end}`).join(', ');
+          const newTimes = change.newSchedule.map(s => `${s.start}-${s.end}`).join(', ');
+
+          const message =
+            `⚡️ *ЗМІНА ГРАФІКУ ВІДКЛЮЧЕНЬ*\n\n` +
+            `Група: *${change.queue}*\n\n` +
+            `❌ Старий графік:\n${change.oldSchedule.map(s => `⏰ ${s.start} - ${s.end}`).join('\n')}\n\n` +
+            `✅ Новий графік:\n${change.newSchedule.map(s => `⏰ ${s.start} - ${s.end}`).join('\n')}\n\n` +
+            `⚠️ Перевірте актуальну інформацію на [vyshgorod.in.ua/svitlo](https://vyshgorod.in.ua/svitlo)`;
+
+          // Відправляємо тільки користувачам цієї групи
+          for (const user of affectedUsers) {
+            try {
+              await bot.sendMessage(user.chat_id, message, {
+                parse_mode: 'Markdown',
+                disable_web_page_preview: true
+              });
+            } catch (error) {
+              console.error(`Failed to send schedule change to ${user.chat_id}:`, error.message);
+            }
+          }
+
+          // Також відправляємо загальне сповіщення всім (незалежно від групи)
+          const generalUsers = users.filter(u => u.queue_number !== change.queue);
+          const generalMessage =
+            `📢 *Оновлення графіку*\n\n` +
+            `Змінено графік відключень для групи *${change.queue}*\n\n` +
+            `Якщо це ваша група - перевірте новий графік!\n\n` +
+            `⚠️ Деталі на [vyshgorod.in.ua/svitlo](https://vyshgorod.in.ua/svitlo)`;
+
+          for (const user of generalUsers) {
+            try {
+              await bot.sendMessage(user.chat_id, generalMessage, {
+                parse_mode: 'Markdown',
+                disable_web_page_preview: true
+              });
+            } catch (error) {
+              console.error(`Failed to send general schedule update to ${user.chat_id}:`, error.message);
+            }
+          }
+        }
+      }
+    }
+  });
+
   console.log('Schedulers initialized ✓');
   console.log('- News check: every 30 minutes');
   console.log('- Alerts check: every minute');
   console.log('- Weather report: daily at 7:00');
   console.log('- Blackout reminders: 30 min before each slot');
+  console.log('- Schedule changes: every 5 minutes');
 }
