@@ -1,64 +1,115 @@
-# Деплой на Railway.app
+# Деплой на бесплатный хостинг БЕЗ КАРТЫ
 
-## Шаг 1: Подготовка репозитория
+## ✅ Лучший вариант: Render.com
+
+**Преимущества:**
+- Полностью бесплатный без карты
+- 750 часов/месяц (достаточно для 24/7)
+- Автоматический деплой из GitHub
+- Простая настройка
+
+### Шаг 1: Создать репозиторий на GitHub
+
+1. Зайти на [github.com](https://github.com) → залогиниться
+2. Нажать **"New repository"** (зелёная кнопка справа вверху)
+3. Название: `vyshgorod-bot`
+4. Сделать **Public** (для бесплатного хостинга)
+5. Нажать **"Create repository"**
+
+### Шаг 2: Запушить код
+
+Скопируй команды, которые GitHub покажет в разделе "…or push an existing repository":
 
 ```bash
-# Инициализировать git
-git init
-git add .
-git commit -m "Initial commit: Vyshgorod bot"
-
-# Создать репозиторий на GitHub
-# Перейти на github.com → New repository → vyshgorod-bot
-
-# Подключить удалённый репозиторий
 git remote add origin https://github.com/YOUR_USERNAME/vyshgorod-bot.git
 git branch -M main
 git push -u origin main
 ```
 
-## Шаг 2: Деплой на Railway
+**ВАЖНО:** Замени `YOUR_USERNAME` на свой логин GitHub!
 
-1. Зайти на [railway.app](https://railway.app) и залогиниться через GitHub
-2. Нажать **"New Project"**
-3. Выбрать **"Deploy from GitHub repo"**
-4. Выбрать репозиторий `vyshgorod-bot`
-5. Railway автоматически обнаружит Node.js проект
-
-## Шаг 3: Настроить переменные окружения
-
-В панели Railway:
-1. Открыть вкладку **Variables**
-2. Добавить:
-   ```
-   BOT_TOKEN=9208357626:AAF3vLUONY_AMVGIRfrSXdoQxVLwpg9ry_g
-   ```
-
-## Шаг 4: Готово!
-
-Railway автоматически:
-- Установит зависимости (`npm install`)
-- Запустит бота (`npm start`)
-- Будет держать его 24/7
-
-## Логи
-
-Смотреть логи в реальном времени в панели Railway → Deploy → Logs
-
-## Альтернатива: Render.com
-
-Если Railway не работает:
+### Шаг 3: Деплой на Render.com
 
 1. Зайти на [render.com](https://render.com)
-2. **New** → **Web Service**
-3. Подключить GitHub репозиторий
-4. Настройки:
-   - **Build Command**: `npm install`
-   - **Start Command**: `npm start`
-5. Добавить `BOT_TOKEN` в Environment variables
+2. Нажать **"Sign Up"** → войти через GitHub (не требует карты!)
+3. Нажать **"New +"** → **"Web Service"**
+4. Подключить GitHub репозиторий `vyshgorod-bot`
+5. Настройки:
+   - **Name:** `vyshgorod-bot`
+   - **Region:** Frankfurt (ближе к Украине)
+   - **Branch:** `main`
+   - **Build Command:** `npm install`
+   - **Start Command:** `npm start`
+   - **Instance Type:** **Free** ✅
+6. Нажать **"Advanced"** → добавить Environment Variable:
+   - **Key:** `BOT_TOKEN`
+   - **Value:** `9208357626:AAF3vLUONY_AMVGIRfrSXdoQxVLwpg9ry_g`
+7. Нажать **"Create Web Service"**
+
+### Шаг 4: Готово! 🎉
+
+Render начнёт деплой. Через 2-3 минуты бот будет работать 24/7!
+
+**Проверка:** Открой Telegram → найди бота → `/start`
+
+---
+
+## Альтернативы БЕЗ КАРТЫ:
+
+### 2. Glitch.com
+- 1000 часов/месяц бесплатно
+- Нужно создать проект через интерфейс и импортировать из GitHub
+- [glitch.com](https://glitch.com)
+
+### 3. Fly.io
+- Бесплатный tier БЕЗ карты
+- Через CLI:
+```bash
+# Установить flyctl
+curl -L https://fly.io/install.sh | sh
+
+# Залогиниться
+fly auth login
+
+# Запустить проект
+fly launch --no-deploy
+
+# Установить токен
+fly secrets set BOT_TOKEN=9208357626:AAF3vLUONY_AMVGIRfrSXdoQxVLwpg9ry_g
+
+# Задеплоить
+fly deploy
+```
+
+### 4. Koyeb.com
+- 512MB RAM бесплатно без карты
+- Деплой из GitHub
+- [koyeb.com](https://koyeb.com)
+
+---
 
 ## Проверка работы
 
-Открыть Telegram → найти бота → `/start`
+После деплоя:
+1. В Telegram найди бота по юзернейму (узнай у @BotFather)
+2. Отправь `/start`
+3. Выбери чергу відключень
+4. Бот должен отвечать!
 
-Должно прийти приветственное сообщение с кнопками.
+## Логи
+
+Смотреть логи:
+- **Render:** Dashboard → Logs (обновляются в реальном времени)
+- **Fly.io:** `fly logs`
+- **Glitch:** Console в редакторе
+
+## Если что-то не работает
+
+Проверь логи на хостинге. Частые проблемы:
+- Неправильный `BOT_TOKEN` 
+- Нужно добавить `PORT` переменную (должно быть автоматически)
+- SQLite база не сохраняется - это нормально на ephemeral хостинге, при рестарте создастся заново
+
+---
+
+**Рекомендация:** Используй **Render.com** - самый простой и стабильный вариант без карты.

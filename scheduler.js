@@ -1,6 +1,7 @@
 import cron from 'node-cron';
 import { fetchNews, checkAlerts, getWeather } from './parsers.js';
 import { queries } from './db.js';
+import { config } from './config.js';
 
 export function setupSchedulers(bot) {
   // Check news every 30 minutes
@@ -41,11 +42,13 @@ export function setupSchedulers(bot) {
       // New alert started
       const alertId = queries.addAlert.run(alertStatus.type, new Date().toISOString()).lastInsertRowid;
 
+      const alertType = config.alertTypes[alertStatus.type] || '🚨 ПОВІТРЯНА ТРИВОГА';
       const users = queries.getAllUsers.all();
+
       for (const user of users) {
         try {
           await bot.sendMessage(user.chat_id,
-            `🚨 *ПОВІТРЯНА ТРИВОГА*\n\n` +
+            `${alertType}\n\n` +
             `Вишгородський район\n` +
             `Час початку: ${new Date().toLocaleTimeString('uk-UA')}\n\n` +
             `Будьте в безпеці! 🙏`,
@@ -103,33 +106,39 @@ export function setupSchedulers(bot) {
   // Blackout reminders (30 min before each scheduled outage)
   cron.schedule('*/30 * * * *', async () => {
     const now = new Date();
-    const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+    const currentHour = now.getHours();
+    const currentMinute = now.getMinutes();
 
     const users = queries.getAllUsers.all();
     for (const user of users) {
       if (user.queue_number) {
         const schedule = config.blackoutSchedules[user.queue_number];
 
-        for (const slot of schedule) {
-          // Check if blackout starts in 30 minutes
-          const startTime = new Date();
-          const [hours, minutes] = slot.start.split(':');
-          startTime.setHours(parseInt(hours), parseInt(minutes), 0);
+        if (schedule) {
+          for (const slot of schedule) {
+            const [startHour, startMinute] = slot.start.split(':').map(Number);
 
-          const diff = startTime - now;
-          const diffMinutes = Math.floor(diff / (1000 * 60));
+            // Calculate time difference in minutes
+            let diffMinutes = (startHour * 60 + startMinute) - (currentHour * 60 + currentMinute);
 
-          if (diffMinutes === 30) {
-            try {
-              await bot.sendMessage(user.chat_id,
-                `⚡️ *Нагадування*\n\n` +
-                `Через 30 хвилин (о ${slot.start}) планове відключення електроенергії\n` +
-                `Черга ${user.queue_number}\n` +
-                `Тривалість: ${slot.start} - ${slot.end}`,
-                { parse_mode: 'Markdown' }
-              );
-            } catch (error) {
-              console.error(`Failed to send reminder to ${user.chat_id}:`, error.message);
+            // Handle day wrap-around
+            if (diffMinutes < 0) {
+              diffMinutes += 24 * 60;
+            }
+
+            // Send reminder if blackout starts in 30 minutes (±5 min tolerance)
+            if (diffMinutes >= 25 && diffMinutes <= 35) {
+              try {
+                await bot.sendMessage(user.chat_id,
+                  `⚡️ *Нагадування*\n\n` +
+                  `Через ~30 хвилин (о ${slot.start}) планове відключення електроенергії\n` +
+                  `Група ${user.queue_number}\n` +
+                  `Тривалість: ${slot.start} - ${slot.end}`,
+                  { parse_mode: 'Markdown' }
+                );
+              } catch (error) {
+                console.error(`Failed to send reminder to ${user.chat_id}:`, error.message);
+              }
             }
           }
         }
@@ -138,4 +147,8 @@ export function setupSchedulers(bot) {
   });
 
   console.log('Schedulers initialized ✓');
+  console.log('- News check: every 30 minutes');
+  console.log('- Alerts check: every minute');
+  console.log('- Weather report: daily at 7:00');
+  console.log('- Blackout reminders: 30 min before each slot');
 }
