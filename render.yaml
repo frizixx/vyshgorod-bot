@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: vyshgorod-bot
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_VERSION
+        value: 18
+      - key: BOT_TOKEN
+        sync: false
+    healthCheckPath: /health
