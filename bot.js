@@ -41,8 +41,8 @@ export function createBot() {
       reply_markup: {
         inline_keyboard: [
           [{ text: 'Група 1.1', callback_data: 'queue_1.1' }, { text: 'Група 1.2', callback_data: 'queue_1.2' }],
-          [{ text: 'Група 2.1', callback_data: 'queue_2.1' }, { text: 'Група 2.2', callback_data: 'queue_2.2' }],
-          [{ text: 'Група 3.1', callback_data: 'queue_3.1' }, { text: 'Група 3.2', callback_data: 'queue_3.2' }]
+          [{ text: 'Група 1.4', callback_data: 'queue_1.4' }, { text: 'Група 2.1', callback_data: 'queue_2.1' }],
+          [{ text: 'Група 6.2', callback_data: 'queue_6.2' }]
         ]
       }
     });
