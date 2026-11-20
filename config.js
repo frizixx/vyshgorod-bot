@@ -1,6 +1,6 @@
 export const config = {
   botToken: process.env.BOT_TOKEN || '9208357626:AAF3vLUONY_AMVGIRfrSXdoQxVLwpg9ry_g',
-  port: process.env.PORT || 3000,
+  port: process.env.PORT || 8080,
 
   // Sources
   sources: {
