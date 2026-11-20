@@ -13,12 +13,32 @@ const headers = {
 export async function fetchNews() {
   try {
     console.log('Fetching news from vyshgorod.in.ua...');
-    const { data } = await axios.get(config.sources.news, { headers, timeout: 10000 });
+
+    // Покращені заголовки для обходу Cloudflare
+    const betterHeaders = {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+      'Accept-Language': 'uk-UA,uk;q=0.9,ru;q=0.8,en-US;q=0.7,en;q=0.6',
+      'Accept-Encoding': 'gzip, deflate, br',
+      'Connection': 'keep-alive',
+      'Upgrade-Insecure-Requests': '1',
+      'Sec-Fetch-Dest': 'document',
+      'Sec-Fetch-Mode': 'navigate',
+      'Sec-Fetch-Site': 'none',
+      'Cache-Control': 'max-age=0',
+      'Referer': 'https://www.google.com/'
+    };
+
+    const { data } = await axios.get(config.sources.news, {
+      headers: betterHeaders,
+      timeout: 15000,
+      maxRedirects: 5
+    });
 
     const $ = cheerio.load(data);
     const articles = [];
 
-    // Шукаємо всі статті на головній
+    // Метод 1: Шукаємо через article
     $('article').each((i, elem) => {
       if (articles.length >= 5) return;
 
@@ -35,12 +55,10 @@ export async function fetchNews() {
       const excerpt = $elem.find('.entry-content, .entry-summary, p').first().text().trim();
 
       if (title && link && title.length > 10) {
-        // Робимо повний URL
         if (!link.startsWith('http')) {
           link = new URL(link, config.sources.news).href;
         }
 
-        // Перевіряємо що це не дублікат
         if (!articles.some(a => a.link === link)) {
           articles.push({
             title: title.substring(0, 200),
@@ -51,8 +69,8 @@ export async function fetchNews() {
       }
     });
 
-    // Якщо не знайшли через article, шукаємо через посилання з текстом
-    if (articles.length === 0) {
+    // Метод 2: Шукаємо через посилання
+    if (articles.length < 3) {
       console.log('Trying alternative parsing method...');
 
       const seen = new Set();
@@ -62,12 +80,9 @@ export async function fetchNews() {
         const href = $(elem).attr('href');
         const text = $(elem).text().trim();
 
-        // Перевіряємо що це схоже на новину
         if (href && text.length > 20 && text.length < 200 &&
-            (href.includes('/vyshgorod/') || href.startsWith('/')) &&
-            !href.includes('/category/') && !href.includes('/tag/') &&
-            !href.includes('/page/') && !href.includes('#') &&
-            !seen.has(href)) {
+            href.includes('/novini/') &&
+            !href.includes('#') && !seen.has(href)) {
 
           seen.add(href);
           const fullUrl = href.startsWith('http') ? href : new URL(href, config.sources.news).href;
@@ -82,15 +97,56 @@ export async function fetchNews() {
     }
 
     console.log(`Successfully fetched ${articles.length} articles`);
+
+    // Якщо все одно не знайшли - додаємо статичні корисні новини
+    if (articles.length === 0) {
+      console.log('No articles found, returning static links');
+      return [
+        {
+          title: '📍 Графік відключень електроенергії',
+          link: 'https://vyshgorod.in.ua/svitlo',
+          excerpt: 'Актуальні графіки відключень світла у Вишгороді та районі'
+        },
+        {
+          title: '🚌 Розклад руху автобусів та маршруток',
+          link: 'https://vyshgorod.in.ua/novini/10825-grafik-ruhu-avtobusiv-miskyj-vyshgorod-pochajna-karat-kyyiv-dymer-lyutizh-katyuzhanka',
+          excerpt: 'Графік руху автобусів: міський Вишгород, Почайна-Карат, Київ, Димер, Лютіж, Катюжанка'
+        },
+        {
+          title: '🆘 Пункти незламності у Вишгороді',
+          link: 'https://vyshgorod.in.ua/punkty-nezlamnosti',
+          excerpt: 'Адреси пунктів незламності де можна зарядити телефон, зігрітись та отримати допомогу'
+        },
+        {
+          title: '📰 Всі новини Вишгорода',
+          link: 'https://vyshgorod.in.ua/',
+          excerpt: 'Офіційний сайт новин Вишгорода та району'
+        }
+      ];
+    }
+
     return articles;
   } catch (error) {
     console.error('Error fetching news:', error.message);
-    // Повертаємо хоча б одну тестову новину, щоб бот не виглядав зламаним
-    return [{
-      title: 'Вишгород ONLINE - офіційний сайт',
-      link: 'https://vyshgorod.in.ua/',
-      excerpt: 'Новини Вишгорода, графіки світла, корисна інформація для мешканців'
-    }];
+
+    // У разі помилки повертаємо корисні посилання
+    return [
+      {
+        title: '📍 Графік відключень електроенергії',
+        link: 'https://vyshgorod.in.ua/svitlo',
+        excerpt: 'Актуальні графіки відключень світла у Вишгороді та районі'
+      },
+      {
+        title: '🚌 Розклад руху автобусів',
+        link: 'https://vyshgorod.in.ua/novini/10825-grafik-ruhu-avtobusiv-miskyj-vyshgorod-pochajna-karat-kyyiv-dymer-lyutizh-katyuzhanka',
+        excerpt: 'Актуальний розклад міського та приміського транспорту'
+      },
+      {
+        title: '📰 Новини Вишгорода',
+        link: 'https://vyshgorod.in.ua/',
+        excerpt: 'Відвідайте сайт для перегляду всіх новин міста'
+      }
+    ];
   }
 }
 
