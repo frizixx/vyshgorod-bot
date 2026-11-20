@@ -19,14 +19,15 @@ export function createBot() {
       `🔌 Графіки відключень електроенергії\n` +
       `📰 Новини Вишгорода\n` +
       `🚨 Повітряні тривоги\n` +
-      `🌤 Погода\n\n` +
+      `🌤 Погода\n` +
+      `🚌 Розклад маршруток\n\n` +
       `Виберіть свою чергу відключень командою /queue`,
       {
         reply_markup: {
           keyboard: [
             ['📰 Новини', '🔌 Графік відключень'],
             ['🚨 Тривоги', '🌤 Погода'],
-            ['⚙️ Налаштування']
+            ['🚌 Розклад маршруток', '⚙️ Налаштування']
           ],
           resize_keyboard: true
         }
@@ -173,6 +174,21 @@ export function createBot() {
         console.error('Error fetching weather:', error);
         bot.sendMessage(chatId, '❌ Помилка завантаження погоди');
       }
+    }
+
+    if (text === '🚌 Розклад маршруток') {
+      bot.sendMessage(chatId,
+        `🚌 *Розклад маршруток та автобусів*\n\n` +
+        `📍 Міські, приміські та районні маршрути\n` +
+        `📍 Вишгород → Київ\n` +
+        `📍 Вишгород → Димер, Лютіж, Катюжанка\n` +
+        `📍 Міський маршрут\n\n` +
+        `[📱 Переглянути повний розклад](https://vyshgorod.in.ua/novini/10825-grafik-ruhu-avtobusiv-miskyj-vyshgorod-pochajna-karat-kyyiv-dymer-lyutizh-katyuzhanka)`,
+        {
+          parse_mode: 'Markdown',
+          disable_web_page_preview: false
+        }
+      );
     }
 
     if (text === '⚙️ Налаштування') {
