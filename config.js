@@ -20,7 +20,8 @@ export const config = {
     weather: 60
   },
 
-  // Blackout schedules by group (обновите под реальные графики с сайта)
+  // Blackout schedules by group (DTEK standard schedule for Kyiv region)
+  // These are EXAMPLE schedules - users should check actual times on vyshgorod.in.ua/svitlo
   blackoutSchedules: {
     '1.1': [
       { start: '00:00', end: '04:00' },
@@ -30,7 +31,7 @@ export const config = {
     '1.2': [
       { start: '04:00', end: '08:00' },
       { start: '12:00', end: '16:00' },
-      { start: '20:00', end: '24:00' }
+      { start: '20:00', end: '23:59' }
     ],
     '2.1': [
       { start: '02:00', end: '06:00' },
