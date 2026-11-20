@@ -181,26 +181,30 @@ export function createBot() {
 
     if (text === '🔌 Графік відключень') {
       const user = queries.getUser.get(chatId);
-      if (user?.queue_number) {
-        const schedule = formatSchedule(user.queue_number);
-        const nextBlackout = getNextBlackout(user.queue_number);
-        const status = isBlackoutNow(user.queue_number);
 
-        bot.sendMessage(chatId,
-          `🔌 *Графік відключень для групи ${user.queue_number}*\n\n` +
-          `${status ? '🔴 Зараз відключено' : '🟢 Зараз світло є'}\n\n` +
-          `📋 Графік на сьогодні:\n${schedule}\n\n` +
-          (nextBlackout ? `⏰ Наступне відключення:\n${nextBlackout}\n\n` : '') +
-          `⚠️ _Графік може змінюватись. Актуальну інформацію дивіться на_ [vyshgorod.in.ua/svitlo](https://vyshgorod.in.ua/svitlo)`,
-          { parse_mode: 'Markdown', disable_web_page_preview: true }
-        );
-      } else {
-        bot.sendMessage(chatId,
-          '❌ Спочатку оберіть групу командою /queue\n\n' +
-          'Не знаєте свою групу? Перевірте на [vyshgorod.in.ua/svitlo](https://vyshgorod.in.ua/svitlo)',
-          { parse_mode: 'Markdown', disable_web_page_preview: true }
-        );
-      }
+      // Показуємо кнопки вибору груп
+      bot.sendMessage(chatId,
+        `🔌 *Оберіть вашу групу відключень:*\n\n` +
+        (user?.queue_number ? `Ваша поточна група: *${user.queue_number}*\n\n` : '') +
+        `Не знаєте свою групу? Перевірте на [vyshgorod.in.ua/svitlo](https://vyshgorod.in.ua/svitlo)`,
+        {
+          parse_mode: 'Markdown',
+          disable_web_page_preview: true,
+          reply_markup: {
+            inline_keyboard: [
+              [
+                { text: '1.1', callback_data: 'queue_1.1' },
+                { text: '1.2', callback_data: 'queue_1.2' },
+                { text: '1.4', callback_data: 'queue_1.4' }
+              ],
+              [
+                { text: '2.1', callback_data: 'queue_2.1' },
+                { text: '6.2', callback_data: 'queue_6.2' }
+              ]
+            ]
+          }
+        }
+      );
     }
 
     if (text === '🚨 Тривоги') {
