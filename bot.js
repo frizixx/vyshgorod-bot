@@ -156,22 +156,23 @@ export function createBot() {
           return;
         }
 
-        bot.sendMessage(chatId, `📰 *Останні новини Вишгорода* (${new Date().toLocaleDateString('uk-UA')}):\n`,
-          { parse_mode: 'Markdown' });
+        // Формуємо одне повідомлення з усіма новинами
+        let newsMessage = `📰 *Останні новини Вишгорода*\n${new Date().toLocaleDateString('uk-UA')}\n\n`;
 
-        for (const article of articles.slice(0, 5)) {
-          await bot.sendMessage(chatId,
-            `📰 *${article.title}*\n\n` +
-            `${article.excerpt ? article.excerpt.substring(0, 200) + '...\n\n' : ''}` +
-            `[Читати повністю →](${article.link})`,
-            { parse_mode: 'Markdown', disable_web_page_preview: true }
-          );
-        }
+        articles.slice(0, 5).forEach((article, index) => {
+          newsMessage += `${index + 1}. *${article.title}*\n`;
+          if (article.excerpt) {
+            newsMessage += `${article.excerpt.substring(0, 150)}...\n`;
+          }
+          newsMessage += `[Читати →](${article.link})\n\n`;
+        });
 
-        bot.sendMessage(chatId,
-          `📱 Більше новин на [vyshgorod.in.ua](https://vyshgorod.in.ua)`,
-          { parse_mode: 'Markdown', disable_web_page_preview: true }
-        );
+        newsMessage += `📱 Більше новин на [vyshgorod.in.ua](https://vyshgorod.in.ua)`;
+
+        bot.sendMessage(chatId, newsMessage, {
+          parse_mode: 'Markdown',
+          disable_web_page_preview: true
+        });
       } catch (error) {
         console.error('Error fetching news:', error);
         bot.sendMessage(chatId, '❌ Помилка завантаження новин. Спробуйте пізніше.');
@@ -320,9 +321,6 @@ export function createBot() {
         `💡 *Графіки та послуги:*\n` +
         `• [Графіки відключень](https://vyshgorod.in.ua/svitlo)\n` +
         `• [Розклад транспорту](https://vyshgorod.in.ua/novini/10825-grafik-ruhu-avtobusiv-miskyj-vyshgorod-pochajna-karat-kyyiv-dymer-lyutizh-katyuzhanka)\n\n` +
-        `📱 *Telegram канали:*\n` +
-        `• [@VyshgorodNews](https://t.me/VyshgorodNews) - новини міста\n` +
-        `• [@air_alert_ua](https://t.me/air_alert_ua) - повітряні тривоги\n\n` +
         `🆘 *Допомога:*\n` +
         `• [Пункти незламності](https://vyshgorod.in.ua/punkty-nezlamnosti)\n\n` +
         `💡 _Додайте цей бот до закладок для швидкого доступу до інформації!_`,
